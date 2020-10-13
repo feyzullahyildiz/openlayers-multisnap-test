@@ -90,27 +90,62 @@ const modify = new Modify({
 map.addInteraction(modify);
 
 const pixelTolerance = 20;
+const edge = true;
 const snapA = new Snap({
     source: sourceA,
-    pixelTolerance
+    pixelTolerance,
+    edge,
 });
 map.addInteraction(snapA);
 
 const snapB = new Snap({
     source: sourceB,
     pixelTolerance,
+    edge,
 });
 map.addInteraction(snapB);
-
+const sourceList = [sourceA, sourceB];
 modify.on('modifyend', (event) => {
     const orjPixel = map.getEventPixel(event.mapBrowserEvent.originalEvent);
     const maybeSnappedPixel = event.mapBrowserEvent.pixel;
     if (orjPixel[0] === maybeSnappedPixel[0] && orjPixel[1] === maybeSnappedPixel[1]) {
-        console.log('NOT snapped')
-    } else {
-        console.log('SNAPPED')
+        console.log('NOT snapped');
+        return;
     }
+    console.log('SNAPPED');
+    const feature = event.features.item(0);
+
+    const features = sourceList.map(s => s.getFeaturesAtCoordinate(event.mapBrowserEvent.coordinate))
+        .flat()
+        .filter(f => f !== feature);
+    if (features.length !== 1) {
+        return;
+    }
+
+    const [lon, lat] = event.mapBrowserEvent.coordinate;
+
+    // const snapped2DCoordinate = map.getCoordinateFromPixel(maybeSnappedPixel);
+    const snappedFeature = features[0];
+    // console.log('snappedFeature', snappedFeature);
+    const snappedVertexList = snappedFeature.getGeometry().getCoordinates();
+    const snappedVertex = snappedVertexList.find(a => a[0] === lon && a[1] === lat);
+    if (!snappedVertex) {
+        console.log('snappedVertex not found', snappedVertex);
+        return;
+    }
+    const modifiedGeometry = feature.getGeometry();
+    const modifiedCoordinates = modifiedGeometry.getCoordinates();
+    const modifiedVertexIndex = modifiedCoordinates.findIndex(a => a[0] === lon && a[1] === lat);
+    if(modifiedVertexIndex === -1) {
+        console.log('modifiedVertexIndex -1')
+        return;
+    }
+    modifiedCoordinates[modifiedVertexIndex][2] = snappedVertex[2];
+    modifiedGeometry.setCoordinates(modifiedCoordinates, modifiedGeometry.getLayout());
+
 });
 
 
+window.sourceA = sourceA;
+window.sourceB = sourceB;
 
