@@ -90,7 +90,7 @@ const modify = new Modify({
 map.addInteraction(modify);
 
 const pixelTolerance = 20;
-const edge = true;
+const edge = false;
 const snapA = new Snap({
     source: sourceA,
     pixelTolerance,
